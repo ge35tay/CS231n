@@ -62,7 +62,7 @@ def affine_backward(dout, cache):
     N = x.shape[0]
     dx = np.dot(dout, w.T).reshape(x.shape)
     dw = np.dot(x.reshape(N, -1).T,  dout)
-    db = np,sum(dout, axis = 0)
+    db = np.sum(dout, axis = 0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -143,7 +143,15 @@ def softmax_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_train = x.shape[0]
+    scores = x - np.max(x, axis = 1).reshape(num_train, 1)
+    normalized_scores = np.exp(scores) / np.sum(np.exp(scores), axis = 1).reshape(num_train ,1)
+    loss = -np.sum(np.log(normalized_scores[np.arange(num_train), y]))
+    loss /= num_train
+
+    normalized_scores[np.arange(num_train), y] -= 1
+    dx = normalized_scores / num_train
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -468,7 +476,8 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        mask = (np.random.rand(*x.shape) >= p) / (1 - p)
+        out = x * mask
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -480,7 +489,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out = x
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -509,9 +518,8 @@ def dropout_backward(dout, cache):
         # TODO: Implement training phase backward pass for inverted dropout   #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
+        dx = dout * mask
+        
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
         #                          END OF YOUR CODE                           #

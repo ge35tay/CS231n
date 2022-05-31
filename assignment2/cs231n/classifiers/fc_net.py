@@ -12,7 +12,7 @@ def batchnorm_relu_forward(x, gamma, bata, bn_param):
     cache = (batchnorm_cache, relu_cache)
     return out, cache
 
-def batch_relu_backward(dout, cache):
+def batchnorm_relu_backward(dout, cache):
     batchnorm_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
     dx, dgamma, dbeta = batchnorm_backward(da, batchnorm_cache)
@@ -45,7 +45,7 @@ class FullyConnectedNet(object):
         weight_scale=1e-2,
         dtype=np.float32,
         seed=None,
-        use_batchnorm = True
+        use_batchnorm = False
     ):
         """Initialize a new FullyConnectedNet.
 
@@ -89,7 +89,7 @@ class FullyConnectedNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         last_dim = input_dim
         for hidden_lay, hidden_dim in enumerate(hidden_dims):
-            self.params["W" + str(hidden_lay + 1)] = np.random.normal(scale = weight_scale, size=(input_dim, hidden_dim))
+            self.params["W" + str(hidden_lay + 1)] = np.random.normal(scale = weight_scale, size=(last_dim, hidden_dim))
             self.params["b" + str(hidden_lay + 1)] = np.zeros(hidden_dim)
 
             if self.use_batchnorm:
@@ -97,8 +97,9 @@ class FullyConnectedNet(object):
                 self.params["beta" + str(hidden_lay + 1)] = np.zeros(hidden_dim)
 
             last_dim = hidden_dim
-        self.params["W"  + str(self.num_layers)] = np.random.normal(scale=weight_scale, size=(last_dim, num_classes))
-        self.params["b" + str(self.num_layers + 1)] = np.zeros(num_classes)
+        
+        self.params["W" + str(self.num_layers)] = np.random.normal(scale=weight_scale, size=(last_dim, num_classes))
+        self.params["b" + str(self.num_layers)] = np.zeros(num_classes)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -175,16 +176,16 @@ class FullyConnectedNet(object):
         loss_reg = 0
 
         for l in range(self.num_layers):
-            affi_out, affi_cache = affine_relu_forward(next_input, self.params["W" + str(l + 1)], self.params["b" + str(l + 1)])
+            affi_out, affi_cache = affine_forward(next_input, self.params["W" + str(l + 1)], self.params["b" + str(l + 1)])
             loss_reg += 0.5 * self.reg * np.sum(self.params["W" + str(l + 1)] ** 2)
 
             if l == self.num_layers - 1:
                 scores = affi_out
                 caches.append((affi_cache, 0))
-            
+                break
+
             if self.use_batchnorm:
-                relu_out, relu_cache = batchnorm_relu_forward(affi_out, self.params["gamma" + str(l+1)], 
-                                                                self.params["beta" + str(l+1)], self.bn_params[l])
+                relu_out, relu_cache = batchnorm_relu_forward(affi_out, self.params["gamma" + str(l+1)], self.params["beta" + str(l+1)], self.bn_params[l])
             else:
                 relu_out, relu_cache = relu_forward(affi_out)
             
@@ -192,7 +193,7 @@ class FullyConnectedNet(object):
                 dropout_output, dropout_cache = dropout_forward(relu_out, self.dropout_param)
                 caches.append((affi_cache, relu_cache, dropout_cache))
                 next_input = dropout_output
-            
+
             else:
                 caches.append((affi_cache, relu_cache))
                 next_input = relu_out
@@ -230,7 +231,25 @@ class FullyConnectedNet(object):
         for l in reversed(range(self.num_layers)):
             if l == self.num_layers - 1:
                 dx, dw, db = affine_backward(dout, caches[l][0])
+            
+            else:
+                if self.use_dropout:
+                    dx = dropout_backward(dx, caches[l][2])
                 
+                if self.use_batchnorm:
+                    dR, dgamma, dbeta = batchnorm_relu_backward(dx, caches[l][1])
+                    grads['gamma'+str(l+1)]=dgamma
+                    grads['beta'+str(l+1)]=dbeta
+                else:
+                    dR = relu_backward(dx, caches[l][1])
+                
+
+                dx, dw, db = affine_backward(dR, caches[l][0])
+
+
+            grads['W'+str(l+1)]= dw+self.reg*self.params['W'+str(l+1)]
+            grads['b'+str(l+1)]= db 
+
 
 
 
