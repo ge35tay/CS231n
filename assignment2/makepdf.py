@@ -11,7 +11,7 @@ except ImportError:
     MERGE = False
 
 
-def main(files, pdf_name):
+def main(files):
     os_args = [
         "jupyter",
         "nbconvert",
@@ -29,7 +29,7 @@ def main(files, pdf_name):
         merger = PdfFileMerger()
         for pdf in pdfs:
             merger.append(pdf)
-        merger.write(pdf_name)
+        merger.write("assignment.pdf")
         merger.close()
         for pdf in pdfs:
             os.remove(pdf)
@@ -40,6 +40,5 @@ if __name__ == "__main__":
     # We pass in a explicit notebook arg so that we can provide an ordered list
     # and produce an ordered PDF.
     parser.add_argument("--notebooks", type=str, nargs="+", required=True)
-    parser.add_argument("--pdf_filename", type=str, required=True)
     args = parser.parse_args()
-    main(args.notebooks, args.pdf_filename)
+    main(args.notebooks)
